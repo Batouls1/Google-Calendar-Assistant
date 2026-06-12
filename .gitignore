@@ -1,0 +1,58 @@
+.env
+.env.*
+!.env.example
+credentials.json
+token.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Virtual environments ---
+venv/
+.venv/
+env/
+ENV/
+
+# --- Testing ---
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Jupyter (if you add notebooks later) ---
+.ipynb_checkpoints/
+
+# --- LangChain / LangSmith local cache ---
+.langchain/
+*.langchain.db
+
+# --- Gradio ---
+gradio_cached_examples/
+flagged/
+
+# --- Logs ---
+*.log
+logs/
+
+# --- IDE — VS Code ---
+.vscode/
+*.code-workspace
+
+# --- IDE — PyCharm ---
+.idea/
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- HuggingFace deployment artifacts ---
+.gradio/
