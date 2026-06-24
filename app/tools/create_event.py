@@ -1,11 +1,12 @@
 from app.services.calendar_service import insert_event
-from app.utils.datetime_utils import parse_datetime, to_rfc3339
+from app.utils.datetime_utils import now_beirut, parse_datetime, to_rfc3339
 from app.utils.logger import get_logger
 from app.utils.exceptions import CalendarToolError
+from app.tools.decorators import handle_tool_errors
 
 logger = get_logger(__name__)
 
-
+@handle_tool_errors
 def create_event(
     title: str,
     start_datetime: str,
@@ -40,6 +41,13 @@ def create_event(
         if end_dt <= start_dt:
             raise CalendarToolError("End time must be after start time.")
 
+        if start_dt < now_beirut():
+            raise CalendarToolError(
+                f"Cannot create an event in the past "
+                f"(start time {to_rfc3339(start_dt)} is before now). "
+                f"Please provide a future date and time."
+            )
+
         event_body = {
             "summary": title,
             "start": {
@@ -59,6 +67,7 @@ def create_event(
 
         created = insert_event(event_body)
         event_link = created.get("htmlLink", "no link available")
+        event_id = created.get("id", "")
 
         logger.info(f"Event created successfully: {event_link}")
         return (
@@ -66,6 +75,7 @@ def create_event(
             f"• Title: {title}\n"
             f"• Start: {to_rfc3339(start_dt)}\n"
             f"• End: {to_rfc3339(end_dt)}\n"
+            f"• Event ID: {event_id}\n"
             f"• Link: {event_link}"
         )
 

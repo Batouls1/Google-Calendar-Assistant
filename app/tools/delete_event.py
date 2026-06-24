@@ -1,12 +1,12 @@
 from app.services.calendar_service import fetch_events, remove_event
-from app.utils.datetime_utils import parse_datetime, to_rfc3339, start_of_day, end_of_day, now_beirut
+from app.utils.datetime_utils import parse_datetime, to_rfc3339, start_of_day, end_of_day
 from app.utils.logger import get_logger
 from app.utils.exceptions import CalendarToolError, EventNotFoundError
-from datetime import timedelta
+from app.tools.decorators import handle_tool_errors
 
 logger = get_logger(__name__)
 
-
+@handle_tool_errors
 def delete_event(event_id: str = "", title: str = "", date: str = "") -> str:
     """
     Delete an event from the user's Google Calendar.
@@ -71,7 +71,7 @@ def delete_event(event_id: str = "", title: str = "", date: str = "") -> str:
         logger.info(f"Deleted event: '{target.get('summary')}' ID: {target.get('id')}")
         return f"Event '{target.get('summary')}' on {date} was successfully deleted."
 
-    except (CalendarToolError, EventNotFoundError):
+    except CalendarToolError:
         raise
     except Exception as e:
         logger.error(f"delete_event failed: {e}")

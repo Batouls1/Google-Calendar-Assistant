@@ -1,10 +1,11 @@
 import os
 from pathlib import Path
-from functools import lru_cache
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from google.auth.exceptions import RefreshError
+from app.utils.exceptions import AuthError
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
@@ -21,7 +22,13 @@ def get_credentials() -> Credentials:
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            try:
+                creds.refresh(Request())
+            except RefreshError as e:
+                raise AuthError(
+                    f"Google Calendar authorization has expired or been revoked ({e}). "
+                    f"Delete token.json and re-authenticate."
+                )
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 str(CREDENTIALS_PATH), SCOPES
@@ -34,7 +41,6 @@ def get_credentials() -> Credentials:
     return creds
 
 
-@lru_cache(maxsize=1)
 def get_calendar_service():
     creds = get_credentials()
     return build("calendar", "v3", credentials=creds)

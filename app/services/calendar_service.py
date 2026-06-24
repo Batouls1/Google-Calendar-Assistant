@@ -4,6 +4,7 @@ from app.utils.exceptions import (
     CalendarToolError,
     EventNotFoundError,
     RateLimitError,
+    AuthError,
     InvalidEventDataError,
     GoogleServerError,
 )
@@ -18,6 +19,8 @@ def _handle_http_error(e: HttpError, context: str):
         raise RateLimitError(f"{context}: rate limit reached — please try again in a moment.")
     elif status == 400:
         raise InvalidEventDataError(f"{context}: invalid request data — {e}")
+    elif status in (401, 403):                                         
+        raise AuthError(f"{context}: authentication or permission denied.")
     elif status >= 500:
         raise GoogleServerError(f"{context}: Google Calendar is temporarily unavailable.")
     else:

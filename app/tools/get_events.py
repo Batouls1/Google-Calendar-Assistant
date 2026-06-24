@@ -1,10 +1,12 @@
 from app.services.calendar_service import fetch_events
-from app.utils.datetime_utils import parse_datetime, to_rfc3339, start_of_day, end_of_day, now_beirut
+from app.utils.datetime_utils import parse_datetime, to_rfc3339, start_of_day, end_of_day
 from app.utils.logger import get_logger
 from app.utils.exceptions import CalendarToolError
+from app.tools.decorators import handle_tool_errors
 
 logger = get_logger(__name__)
 
+@handle_tool_errors
 def get_events(start_date: str, end_date: str) -> str:
     """
     Retrieve all calendar events between two dates.

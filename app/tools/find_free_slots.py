@@ -2,11 +2,12 @@ from app.services.calendar_service import fetch_events
 from app.utils.datetime_utils import parse_datetime, to_rfc3339, start_of_day, end_of_day, BEIRUT_TZ
 from app.utils.logger import get_logger
 from app.utils.exceptions import CalendarToolError
-from datetime import datetime, timedelta
+from app.tools.decorators import handle_tool_errors
+from datetime import datetime
 
 logger = get_logger(__name__)
 
-
+@handle_tool_errors
 def find_free_slots(date: str, duration_minutes: int = 60,
                     day_start_hour: int = 9, day_end_hour: int = 20) -> str:
     """
