@@ -3,6 +3,7 @@ from app.utils.datetime_utils import now_beirut, parse_datetime, to_rfc3339
 from app.utils.logger import get_logger
 from app.utils.exceptions import CalendarToolError
 from app.tools.decorators import handle_tool_errors
+from datetime import timedelta
 
 logger = get_logger(__name__)
 
@@ -41,7 +42,8 @@ def create_event(
         if end_dt <= start_dt:
             raise CalendarToolError("End time must be after start time.")
 
-        if start_dt < now_beirut():
+
+        if start_dt < now_beirut() - timedelta(minutes=10):
             raise CalendarToolError(
                 f"Cannot create an event in the past "
                 f"(start time {to_rfc3339(start_dt)} is before now). "

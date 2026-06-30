@@ -86,3 +86,4 @@ def start_of_day(dt: datetime) -> datetime:
 
 def end_of_day(dt: datetime) -> datetime:
     return dt.replace(hour=23, minute=59, second=59, microsecond=0)
+

@@ -1,5 +1,6 @@
 from app.agent.agent import create_calendar_agent
 
+
 def main():
     print("Google Calendar Assistant")
     print("Type 'quit' to exit.\n")
@@ -18,10 +19,9 @@ def main():
             {"messages": [{"role": "user", "content": user_input}]},
             config=config,
         )
-
         output = result["messages"][-1].content
         print(f"\nAssistant: {output}\n")
 
 
 if __name__ == "__main__":
-    main()
+    main()    

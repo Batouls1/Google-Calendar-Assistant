@@ -35,8 +35,6 @@ def find_free_slots(date: str, duration_minutes: int = 60,
     """
     logger.info(f"Finding free slots on {date} for {duration_minutes} min blocks")
     try:
-        day_end_hour = min(day_end_hour, 23)
-
         date_dt = parse_datetime(date)
         start = to_rfc3339(start_of_day(date_dt))
         end = to_rfc3339(end_of_day(date_dt))
@@ -45,7 +43,15 @@ def find_free_slots(date: str, duration_minutes: int = 60,
 
         day = date_dt.date()
         window_start = datetime(day.year, day.month, day.day, day_start_hour, tzinfo=BEIRUT_TZ)
-        window_end = datetime(day.year, day.month, day.day, day_end_hour, tzinfo=BEIRUT_TZ)
+
+        # day_end_hour=24 is a valid caller request meaning "end of day", but
+        # datetime(hour=24) raises a ValueError — Python's max is hour=23.
+        # end_of_day() returns 23:59:59 which is the correct ceiling for a full day.
+        
+        if day_end_hour >= 24:
+            window_end = end_of_day(date_dt)
+        else:
+            window_end = datetime(day.year, day.month, day.day, day_end_hour, tzinfo=BEIRUT_TZ)
 
         busy = []
         for e in events:

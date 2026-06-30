@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .chat-scroll::-webkit-scrollbar { width: 6px; }
+        .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+        .chat-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 3px; }
+        .typing-dot {
+            width: 6px; height: 6px;
+            background-color: #94a3b8;
+            border-radius: 50%;
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-6px); }
+        }
+        .assistant-text strong { font-weight: 600; color: #1e293b; }
+        .assistant-text a { color: #2563eb; text-decoration: underline; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-[#f8fafc] border-r border-slate-200 flex flex-col justify-between h-full">
+        <div class="p-4 flex flex-col gap-6">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white p-2 rounded-xl shadow-md shadow-blue-200">
+                    <i class="fa-solid fa-calendar-days text-xl w-6 h-6 flex items-center justify-center"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-800 tracking-tight leading-none text-[19px]">Calendar</h1>
+                    <h1 class="font-bold text-slate-800 tracking-tight text-[19px] mt-0.5">Assistant</h1>
+                </div>
+            </div>
+
+            <button id="new-chat-btn" class="w-full bg-[#2563eb] hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm shadow-sm shadow-blue-100">
+                <i class="fa-solid fa-plus text-xs"></i> New Chat
+            </button>
+
+            <nav class="flex flex-col gap-1 text-[13px] font-medium text-slate-600">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 mt-2">Today</span>
+                <a href="#" class="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg font-semibold flex items-center">Schedule team meeting</a>
+                <a href="#" class="hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors">Find free time tomorrow</a>
+                <a href="#" class="hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors">Delete marketing sync</a>
+                <a href="#" class="hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors">What's on my calendar?</a>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 mt-4">Yesterday</span>
+                <a href="#" class="hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors">Project kickoff</a>
+                <a href="#" class="hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors">Weekly sync time</a>
+            </nav>
+        </div>
+
+        <div class="p-4 border-t border-slate-100 bg-[#f8fafc] flex flex-col gap-4">
+            <div class="flex flex-col gap-2 pt-2">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Connected Calendar</span>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                            <path fill="#FFF" d="M19 19H5V8h14v11z"/>
+                        </svg>
+                        <span class="text-xs font-medium text-slate-700">Google Calendar</span>
+                    </div>
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-50"></span>
+                </div>
+            </div>
+            <div class="flex flex-col gap-1 pt-1 border-t border-slate-200/60 text-slate-500 text-xs font-medium">
+                <a href="#" class="flex items-center gap-2.5 py-1.5 hover:text-slate-800 transition-colors">
+                    <i class="fa-solid fa-gear text-slate-400"></i> Settings
+                </a>
+                <a href="#" class="flex items-center gap-2.5 py-1.5 hover:text-slate-800 transition-colors">
+                    <i class="fa-solid fa-arrow-right-from-bracket text-slate-400"></i> Log out
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 flex flex-col h-full bg-white relative">
+        <header class="h-14 border-b border-slate-100 flex items-center justify-between px-6 bg-white shrink-0">
+            <h2 id="chat-title" class="font-semibold text-slate-800 text-[15px]">New Conversation</h2>
+            <button class="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-lg hover:bg-slate-50">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+        </header>
+
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-6 chat-scroll bg-white">
+            <div class="flex items-start gap-3 max-w-2xl">
+                <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-200">
+                    <i class="fa-solid fa-calendar-days text-sm"></i>
+                </div>
+                <div class="bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-none p-4 shadow-sm">
+                    <p class="text-[13.5px] leading-relaxed text-slate-700">Hello! I'm your Calendar Assistant. I can help you schedule events, view your schedule, delete events, and find free time slots.</p>
+                    <p class="text-[13.5px] mt-3 font-medium text-slate-700">How can I assist you today?</p>
+                    <span class="text-[10px] text-slate-400 block mt-2 font-medium" id="welcome-time"></span>
+                </div>
+            </div>
+        </div>
+
+        <footer class="p-4 bg-white border-t border-slate-100 flex flex-col gap-3 shrink-0">
+            <div class="relative flex items-center">
+                <input id="chat-input" type="text" placeholder="Type your message..."
+                    class="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl py-3 pl-4 pr-12 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder-slate-400 text-slate-800"
+                    autocomplete="off">
+                <button id="send-btn"
+                    class="absolute right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors shadow-md shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-paper-plane text-xs w-3.5 h-3.5 flex items-center justify-center"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-4 gap-2 text-[11px] font-bold text-slate-600 w-full">
+                <button class="quick-action flex items-center justify-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm" data-text="Schedule an event ">
+                    <i class="fa-regular fa-calendar text-slate-400 text-xs"></i> Schedule Event
+                </button>
+                <button class="quick-action flex items-center justify-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm" data-text="Delete event ">
+                    <i class="fa-regular fa-trash-can text-slate-400 text-xs"></i> Delete Event
+                </button>
+                <button class="quick-action flex items-center justify-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm" data-text="What events do I have ">
+                    <i class="fa-solid fa-list-ul text-slate-400 text-xs"></i> Get Events
+                </button>
+                <button class="quick-action flex items-center justify-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm" data-text="Find free slots ">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs"></i> Find Free Slots
+                </button>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        const COLORS = ['bg-blue-500','bg-emerald-500','bg-purple-500','bg-amber-500','bg-rose-500'];
+        let threadId = crypto.randomUUID();
+        let isWaiting = false;
+
+        document.getElementById('welcome-time').textContent = formatTime(new Date());
+
+        document.querySelectorAll('.quick-action').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById('chat-input');
+                input.value = btn.dataset.text;
+                input.focus();
+                input.setSelectionRange(input.value.length, input.value.length);
+            });
+        });
+
+        document.getElementById('chat-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        });
+        document.getElementById('send-btn').addEventListener('click', sendMessage);
+
+        document.getElementById('new-chat-btn').addEventListener('click', () => {
+            threadId = crypto.randomUUID();
+            document.getElementById('chat-messages').innerHTML = '';
+            document.getElementById('chat-title').textContent = 'New Conversation';
+            appendAssistantBubble("Hello! I'm your Calendar Assistant. I can help you schedule events, view your schedule, delete events, and find free time slots.\n\nHow can I assist you today?");
+        });
+
+        // ── Send ───────────────────────────────────────────────────────────────
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message || isWaiting) return;
+            input.value = '';
+            isWaiting = true;
+            setInputDisabled(true);
+
+            if (document.getElementById('chat-title').textContent === 'New Conversation') {
+                document.getElementById('chat-title').textContent =
+                    message.length > 40 ? message.slice(0, 40) + '…' : message;
+            }
+
+            appendUserBubble(message);
+            const typingEl = appendTypingIndicator();
+            scrollToBottom();
+
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, thread_id: threadId }),
+                });
+                if (!res.ok) throw new Error(`Server error ${res.status}`);
+                const data = await res.json();
+                typingEl.remove();
+
+                // If a card exists, show it. Otherwise show plain text.
+                // Never show both — the card IS the response.
+                if (data.card) {
+                    renderCard(data.card, data.response);
+                } else {
+                    appendAssistantBubble(data.response);
+                }
+            } catch (err) {
+                typingEl.remove();
+                appendAssistantBubble('Sorry, something went wrong. Please try again.');
+                console.error(err);
+            } finally {
+                isWaiting = false;
+                setInputDisabled(false);
+                document.getElementById('chat-input').focus();
+                scrollToBottom();
+            }
+        }
+
+        // ── Card renderer ──────────────────────────────────────────────────────
+        function renderCard(card, fallbackText) {
+            const time = formatTime(new Date());
+            const avatar = `<div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-200"><i class="fa-solid fa-calendar-days text-sm"></i></div>`;
+            let inner = '';
+
+            // ── event_created ────────────────────────────────────────────────
+            if (card.type === 'event_created') {
+                const s = fmtISO(card.start);
+                const e = fmtISO(card.end);
+                inner = `
+                <div class="bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-4 shadow-sm w-[340px]">
+                    <div class="flex items-center gap-2 text-emerald-600 font-semibold text-xs mb-3">
+                        <span class="w-4 h-4 bg-emerald-100 rounded-full flex items-center justify-center text-[9px]"><i class="fa-solid fa-check"></i></span>
+                        Event scheduled
+                    </div>
+                    <h3 class="font-bold text-[14px] text-slate-800 mb-2">${esc(card.title)}</h3>
+                    <div class="space-y-1.5 text-xs text-slate-500 font-medium mb-4">
+                        <p class="flex items-center gap-2"><i class="fa-regular fa-calendar w-3.5 text-slate-400 text-center"></i>${esc(s.date)}</p>
+                        <p class="flex items-center gap-2"><i class="fa-regular fa-clock w-3.5 text-slate-400 text-center"></i>${esc(s.time)} – ${esc(e.time)}</p>
+                        <p class="flex items-center gap-2"><i class="fa-regular fa-user w-3.5 text-slate-400 text-center"></i>No attendees</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-3 pt-2 border-t border-slate-100">
+                        <span class="text-[10px] text-slate-400 font-medium">${time}</span>
+                        ${card.link ? `<a href="${esc(card.link)}" target="_blank" class="border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm">View Event</a>` : ''}
+                    </div>
+                </div>`;
+            }
+
+            // ── event_deleted ────────────────────────────────────────────────
+            else if (card.type === 'event_deleted') {
+                const label = card.title || 'Event';
+                inner = `
+                <div class="bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-4 shadow-sm w-[320px]">
+                    <div class="flex items-center gap-2 text-emerald-600 font-semibold text-xs mb-2.5">
+                        <span class="w-4 h-4 bg-emerald-100 rounded-full flex items-center justify-center text-[9px]"><i class="fa-solid fa-check"></i></span>
+                        Event deleted
+                    </div>
+                    <h3 class="font-bold text-[14px] text-slate-800 mb-1">${esc(label)}</h3>
+                    <span class="text-[10px] text-slate-400 font-medium block mt-3 pt-2 border-t border-slate-100">${time}</span>
+                </div>`;
+            }
+
+            // ── event_list ───────────────────────────────────────────────────
+            else if (card.type === 'event_list') {
+                const rows = card.events.map((ev, i) => {
+                    const s = fmtISO(ev.start);
+                    const e = fmtISO(ev.end);
+                    // Use time if ISO, raw string if already formatted (e.g. "2:00 PM")
+                    const startLabel = s.time || ev.start;
+                    const endLabel   = e.time || ev.end;
+                    return `
+                    <div class="flex items-center justify-between text-xs font-semibold">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full ${COLORS[i % COLORS.length]} shrink-0"></span>
+                            <span class="text-slate-700 truncate">${esc(ev.title)}</span>
+                        </div>
+                        <span class="text-slate-500 font-medium ml-3 shrink-0">${esc(startLabel)} – ${esc(endLabel)}</span>
+                    </div>`;
+                }).join('');
+
+                inner = `
+                <div class="bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-4 shadow-sm w-[400px]">
+                    <p class="text-[13px] font-bold text-slate-800 mb-4">${esc(card.header)}</p>
+                    <div class="space-y-3 mb-4">${rows}</div>
+                    <div class="flex justify-between items-center mt-4 pt-2 border-t border-slate-100">
+                        <span class="text-[10px] text-slate-400 font-medium">${time}</span>
+                        <a href="https://calendar.google.com" target="_blank" class="border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg transition-colors shadow-sm">View All Events</a>
+                    </div>
+                </div>`;
+            }
+
+            // ── free_slots ───────────────────────────────────────────────────
+            else if (card.type === 'free_slots') {
+                const pills = card.slots.map(s => `
+                    <button onclick="prefillSlot('${esc(s.start)}','${esc(s.end)}')"
+                        class="w-full text-center border border-slate-200 py-1.5 text-xs font-semibold text-slate-700 rounded-lg hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 cursor-pointer transition-colors shadow-sm">
+                        ${esc(s.start)} – ${esc(s.end)}
+                    </button>`).join('');
+                inner = `
+                <div class="bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-4 shadow-sm w-[350px]">
+                    <p class="text-[13px] font-bold text-slate-800 mb-3">${esc(card.header)}</p>
+                    <div class="space-y-1.5 mb-2">${pills}</div>
+                    <span class="text-[10px] text-slate-400 font-medium block mt-3">${time}</span>
+                </div>`;
+            }
+
+            // ── no_free_slots ────────────────────────────────────────────────
+            else if (card.type === 'no_free_slots') {
+                inner = `
+                <div class="bg-white border border-slate-200/80 rounded-2xl rounded-tl-none p-4 shadow-sm w-[320px]">
+                    <div class="flex items-center gap-2 text-slate-500 font-semibold text-xs mb-2">
+                        <span class="w-4 h-4 bg-slate-100 rounded-full flex items-center justify-center text-[9px]"><i class="fa-solid fa-calendar-xmark"></i></span>
+                        No availability
+                    </div>
+                    <p class="text-[13px] text-slate-700">${esc(card.message)}</p>
+                    <span class="text-[10px] text-slate-400 font-medium block mt-3 pt-2 border-t border-slate-100">${time}</span>
+                </div>`;
+            }
+
+            else {
+                // Unknown card type — fall back to the agent's plain text
+                appendAssistantBubble(fallbackText || JSON.stringify(card));
+                return;
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex items-start gap-3 max-w-2xl';
+            wrapper.innerHTML = avatar + inner;
+            document.getElementById('chat-messages').appendChild(wrapper);
+            scrollToBottom();
+        }
+
+        function prefillSlot(start, end) {
+            const input = document.getElementById('chat-input');
+            input.value = `Schedule an event from ${start} to ${end} `;
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+        }
+
+        // ── Plain text bubble ──────────────────────────────────────────────────
+        function appendAssistantBubble(text) {
+            const time = formatTime(new Date());
+            const el = document.createElement('div');
+            el.className = 'flex items-start gap-3 max-w-2xl';
+            el.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-200">
+                    <i class="fa-solid fa-calendar-days text-sm"></i>
+                </div>
+                <div class="bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-none p-4 shadow-sm max-w-lg">
+                    <div class="assistant-text text-[13.5px] leading-relaxed text-slate-700">${renderMarkdown(text)}</div>
+                    <span class="text-[10px] text-slate-400 block mt-2 font-medium">${time}</span>
+                </div>`;
+            document.getElementById('chat-messages').appendChild(el);
+            scrollToBottom();
+        }
+
+        function appendUserBubble(text) {
+            const time = formatTime(new Date());
+            const el = document.createElement('div');
+            el.className = 'flex items-start justify-end gap-3 max-w-2xl ml-auto';
+            el.innerHTML = `
+                <div class="bg-blue-50 border border-blue-100/60 rounded-2xl rounded-tr-none p-4 shadow-sm">
+                    <p class="text-[13.5px] text-slate-800 font-medium">${esc(text)}</p>
+                    <div class="flex items-center justify-end gap-1 mt-1.5">
+                        <span class="text-[10px] text-slate-400 font-medium">${time}</span>
+                        <i class="fa-solid fa-check-double text-[10px] text-blue-500"></i>
+                    </div>
+                </div>`;
+            document.getElementById('chat-messages').appendChild(el);
+        }
+
+        function appendTypingIndicator() {
+            const el = document.createElement('div');
+            el.className = 'flex items-start gap-3 max-w-2xl';
+            el.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-200">
+                    <i class="fa-solid fa-calendar-days text-sm"></i>
+                </div>
+                <div class="bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-none p-4 shadow-sm">
+                    <div class="flex items-center gap-1.5">
+                        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+                    </div>
+                </div>`;
+            document.getElementById('chat-messages').appendChild(el);
+            scrollToBottom();
+            return el;
+        }
+
+        // ── Helpers ────────────────────────────────────────────────────────────
+        function setInputDisabled(d) {
+            document.getElementById('chat-input').disabled = d;
+            document.getElementById('send-btn').disabled = d;
+        }
+        function scrollToBottom() {
+            const c = document.getElementById('chat-messages');
+            c.scrollTop = c.scrollHeight;
+        }
+        function formatTime(date) {
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+        function fmtISO(iso) {
+            if (!iso) return { date: '', time: '' };
+            // Already human readable (e.g. "2:00 PM")
+            if (!iso.includes('T') && !iso.includes('-')) return { date: '', time: iso };
+            try {
+                const d = new Date(iso);
+                if (isNaN(d)) return { date: iso, time: '' };
+                return {
+                    date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                };
+            } catch { return { date: iso, time: '' }; }
+        }
+        function renderMarkdown(text) {
+            let h = esc(text);
+            h = h.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+            h = h.replace(/\n/g, '<br>');
+            return h;
+        }
+        function esc(s) {
+            if (s == null) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+    </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 from googleapiclient.errors import HttpError
 from app.auth.oauth import get_calendar_service
+from typing import NoReturn
 from app.utils.exceptions import (
     CalendarToolError,
     EventNotFoundError,
@@ -10,7 +11,12 @@ from app.utils.exceptions import (
 )
 
 
-def _handle_http_error(e: HttpError, context: str):
+def _handle_http_error(e: HttpError, context: str) -> NoReturn:
+    """Map Google API HTTP status codes to typed calendar exceptions.
+ 
+    Always raises - NoReturn signals to type checkers that callers
+    don't need to handle a return value after this call.
+    """
     status = e.resp.status
 
     if status == 404:

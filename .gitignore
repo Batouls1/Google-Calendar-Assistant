@@ -34,10 +34,6 @@ htmlcov/
 .langchain/
 *.langchain.db
 
-# Gradio 
-gradio_cached_examples/
-flagged/
-
 # Logs 
 *.log
 logs/
@@ -54,5 +50,6 @@ logs/
 Thumbs.db
 desktop.ini
 
-# HuggingFace deployment artifacts
-.gradio/
+# SQLite
+*.db
+*.sqlite
