@@ -1,3 +1,17 @@
+"""
+Integration tests for app/tools/*.py
+ 
+These tests exercise the full stack end-to-end — real Google Calendar API
+calls over real OAuth credentials — covering get_events, create_event,
+delete_event, and find_free_slots as the agent actually uses them. Unlike
+test_calendar_service.py, these are not mocked: they create and clean up
+real events on the connected calendar, and require valid credentials.json
+and token.json in the project root.
+ 
+Run with:
+    pytest tests/test_tools.py -v
+"""
+ 
 from app.tools.get_events import get_events
 from app.tools.create_event import create_event
 from app.tools.delete_event import delete_event
