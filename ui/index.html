@@ -25,13 +25,14 @@
         }
         .assistant-text strong { font-weight: 600; color: #1e293b; }
         .assistant-text a { color: #2563eb; text-decoration: underline; }
+        #sessions-nav a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
 
     <!-- SIDEBAR -->
     <aside class="w-64 bg-[#f8fafc] border-r border-slate-200 flex flex-col justify-between h-full">
-        <div class="p-4 flex flex-col gap-6">
+        <div class="p-4 flex flex-col gap-6 min-h-0">
             <div class="flex items-center gap-3">
                 <div class="bg-blue-600 text-white p-2 rounded-xl shadow-md shadow-blue-200">
                     <i class="fa-solid fa-calendar-days text-xl w-6 h-6 flex items-center justify-center"></i>
@@ -46,15 +47,9 @@
                 <i class="fa-solid fa-plus text-xs"></i> New Chat
             </button>
 
-            <nav class="flex flex-col gap-1 text-[13px] font-medium text-slate-600">
-                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 mt-2">Today</span>
-                <a href="#" class="bg-blue-50 text-blue-700 px-3 py-2 rounded-lg font-semibold flex items-center">Schedule team meeting</a>
-                <a href="#" class="hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors">Find free time tomorrow</a>
-                <a href="#" class="hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors">Delete marketing sync</a>
-                <a href="#" class="hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors">What's on my calendar?</a>
-                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 mt-4">Yesterday</span>
-                <a href="#" class="hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors">Project kickoff</a>
-                <a href="#" class="hover:bg-slate-100 px-3 py-2 rounded-lg transition-colors">Weekly sync time</a>
+            <!-- Populated dynamically by loadSessions() — see script below -->
+            <nav id="sessions-nav" class="flex flex-col gap-1 text-[13px] font-medium text-slate-600 overflow-y-auto chat-scroll">
+                <span class="text-[12px] text-slate-400 px-1 py-2">Loading conversations…</span>
             </nav>
         </div>
 
@@ -73,10 +68,10 @@
                 </div>
             </div>
             <div class="flex flex-col gap-1 pt-1 border-t border-slate-200/60 text-slate-500 text-xs font-medium">
-                <a href="#" class="flex items-center gap-2.5 py-1.5 hover:text-slate-800 transition-colors">
+                <a href="#" onclick="return false;" class="flex items-center gap-2.5 py-1.5 hover:text-slate-800 transition-colors cursor-default">
                     <i class="fa-solid fa-gear text-slate-400"></i> Settings
                 </a>
-                <a href="#" class="flex items-center gap-2.5 py-1.5 hover:text-slate-800 transition-colors">
+                <a href="#" onclick="return false;" class="flex items-center gap-2.5 py-1.5 hover:text-slate-800 transition-colors cursor-default">
                     <i class="fa-solid fa-arrow-right-from-bracket text-slate-400"></i> Log out
                 </a>
             </div>
@@ -158,6 +153,7 @@
             document.getElementById('chat-messages').innerHTML = '';
             document.getElementById('chat-title').textContent = 'New Conversation';
             appendAssistantBubble("Hello! I'm your Calendar Assistant. I can help you schedule events, view your schedule, delete events, and find free time slots.\n\nHow can I assist you today?");
+            renderSessions(cachedSessions); // clear active highlight; new thread has no row yet
         });
 
         // ── Send ───────────────────────────────────────────────────────────────
@@ -204,7 +200,147 @@
                 setInputDisabled(false);
                 document.getElementById('chat-input').focus();
                 scrollToBottom();
+                loadSessions(); // pick up newly created session / keep sidebar in sync
             }
+        }
+
+        // ── Sidebar sessions ──────────────────────────────────────────────────
+        let cachedSessions = [];
+
+        async function loadSessions() {
+            try {
+                const res = await fetch('/sessions');
+                if (!res.ok) throw new Error('Failed to load sessions');
+                const data = await res.json();
+                cachedSessions = data.sessions;
+                renderSessions(cachedSessions);
+            } catch (err) {
+                console.error('Failed to load sessions:', err);
+                const nav = document.getElementById('sessions-nav');
+                nav.innerHTML = '<span class="text-[12px] text-rose-500 px-1 py-2">Could not load history</span>';
+            }
+        }
+
+        function groupSessionsByDate(sessions) {
+            const startOfDay = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+            const today = startOfDay(new Date());
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            const groups = { Today: [], Yesterday: [], Older: [] };
+            for (const s of sessions) {
+                const created = startOfDay(new Date(s.created_at));
+                if (created.getTime() === today.getTime()) groups.Today.push(s);
+                else if (created.getTime() === yesterday.getTime()) groups.Yesterday.push(s);
+                else groups.Older.push(s);
+            }
+            return groups;
+        }
+
+        function renderSessions(sessions) {
+            const nav = document.getElementById('sessions-nav');
+            nav.innerHTML = '';
+
+            if (!sessions || sessions.length === 0) {
+                nav.innerHTML = '<span class="text-[12px] text-slate-400 px-1 py-2">No conversations yet</span>';
+                return;
+            }
+
+            const groups = groupSessionsByDate(sessions);
+            for (const [label, items] of Object.entries(groups)) {
+                if (items.length === 0) continue;
+
+                const heading = document.createElement('span');
+                heading.className = 'text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 mt-2';
+                heading.textContent = label;
+                nav.appendChild(heading);
+
+                for (const s of items) {
+                    const row = document.createElement('div');
+                    row.className = 'group flex items-center gap-0.5';
+
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    const isActive = s.thread_id === threadId;
+                    link.className = 'flex-1 min-w-0 px-3 py-2 rounded-lg transition-colors ' +
+                        (isActive
+                            ? 'bg-blue-50 text-blue-700 font-semibold'
+                            : 'hover:bg-slate-100');
+                    link.textContent = s.title;
+                    link.title = s.title; // full title on hover, since it may be truncated visually
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        loadSession(s.thread_id, s.title);
+                    });
+
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'opacity-0 group-hover:opacity-100 shrink-0 px-2 py-2 rounded-lg ' +
+                        'text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all';
+                    delBtn.title = 'Delete conversation';
+                    delBtn.innerHTML = '<i class="fa-regular fa-trash-can text-xs"></i>';
+                    delBtn.addEventListener('click', (e) => deleteSession(s.thread_id, e));
+
+                    row.appendChild(link);
+                    row.appendChild(delBtn);
+                    nav.appendChild(row);
+                }
+            }
+        }
+
+        async function deleteSession(id, event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!confirm('Delete this conversation? This cannot be undone.')) return;
+
+            try {
+                const res = await fetch(`/sessions/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error(`Server error ${res.status}`);
+
+                if (id === threadId) {
+                    // Currently viewing the deleted thread — reset to a fresh chat
+                    threadId = crypto.randomUUID();
+                    document.getElementById('chat-messages').innerHTML = '';
+                    document.getElementById('chat-title').textContent = 'New Conversation';
+                    appendAssistantBubble("Hello! I'm your Calendar Assistant. I can help you schedule events, view your schedule, delete events, and find free time slots.\n\nHow can I assist you today?");
+                }
+                loadSessions();
+            } catch (err) {
+                console.error('Failed to delete session:', err);
+                alert('Could not delete this conversation. Please try again.');
+            }
+        }
+
+        async function loadSession(id, title) {
+            if (isWaiting || id === threadId) return;
+
+            threadId = id;
+            document.getElementById('chat-title').textContent = title;
+            document.getElementById('chat-messages').innerHTML = '';
+
+            try {
+                const res = await fetch(`/sessions/${id}/messages`);
+                if (!res.ok) throw new Error(`Server error ${res.status}`);
+                const data = await res.json();
+
+                if (data.messages.length === 0) {
+                    appendAssistantBubble("This conversation doesn't have any messages yet.");
+                }
+                for (const msg of data.messages) {
+                    if (msg.role === 'user') {
+                        appendUserBubble(msg.content);
+                    } else if (msg.card) {
+                        renderCard(msg.card, msg.content);
+                    } else {
+                        appendAssistantBubble(msg.content);
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                appendAssistantBubble('Could not load this conversation. Please try again.');
+            }
+
+            scrollToBottom();
+            renderSessions(cachedSessions); // update active highlight
         }
 
         // ── Card renderer ──────────────────────────────────────────────────────
@@ -412,6 +548,9 @@
             if (s == null) return '';
             return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
+
+        // ── Initial load ─────────────────────────────────────────────────────
+        loadSessions();
     </script>
 </body>
 </html>
