@@ -26,12 +26,11 @@ agent = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global agent
-    from app.agent.agent import create_calendar_agent
+    from app.agent.agent import create_calendar_agent, close_agent_db
     agent = create_calendar_agent()
     logger.info("Calendar agent initialised")
     yield
-    # Nothing to clean up for MemorySaver; SqliteSaver will close its
-    # connection here in Phase 4 once we add agent.checkpointer.conn.close()
+    close_agent_db()
     logger.info("Server shutting down")
 
 

@@ -4,6 +4,11 @@
 credentials.json
 token.json
 
+# Database
+memory.db
+memory.db-wal
+memory.db-shm
+
 # Python 
 __pycache__/
 *.py[cod]

@@ -1,14 +1,22 @@
-import os
+import sqlite3
+from pathlib import Path
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
 from app.agent.tools import calendar_tools
 from app.utils.logger import get_logger
 
 load_dotenv()
 logger = get_logger(__name__)
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+DB_PATH = BASE_DIR / "memory.db"
+ 
+# Held at module level so the connection survives for the life of the
+# process — reopening per-request would be wasteful and risks losing
+# in-flight writes. Closed explicitly via close_agent_db() on shutdown.
+_db_connection: sqlite3.Connection | None = None
 
 def _build_system_prompt() -> str:
     """
@@ -48,12 +56,34 @@ them to calendar-related tasks.
 
 
 def create_calendar_agent():
+    global _db_connection
+ 
     model = init_chat_model("openai:gpt-4o", temperature=0)
-    checkpointer = MemorySaver()
-
+ 
+    # check_same_thread=False: FastAPI may invoke agent.invoke() from a
+    # different thread per request. SqliteSaver serializes its own writes
+    # internally, so sharing one connection across threads is safe here.
+    _db_connection = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+    checkpointer = SqliteSaver(_db_connection)
+ 
+    # Creates the checkpoint tables on first run. Safe to call every time
+    # the agent is created — it's a no-op if the tables already exist.
+    checkpointer.setup()
+ 
+    logger.info(f"SQLite checkpointer ready at {DB_PATH}")
+ 
     return create_agent(
         model=model,
         tools=calendar_tools,
-        system_prompt=_build_system_prompt(), 
+        system_prompt=_build_system_prompt(),
         checkpointer=checkpointer,
     )
+ 
+ 
+def close_agent_db() -> None:
+    """Close the SQLite connection. Call this on FastAPI shutdown."""
+    global _db_connection
+    if _db_connection is not None:
+        _db_connection.close()
+        _db_connection = None
+        logger.info("SQLite checkpointer connection closed")
