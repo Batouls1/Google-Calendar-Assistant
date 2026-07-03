@@ -1,0 +1,7 @@
+{
+  "name": "calendar-assistant-ui",
+  "private": true,
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}
