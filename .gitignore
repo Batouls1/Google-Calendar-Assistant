@@ -58,3 +58,5 @@ desktop.ini
 # SQLite
 *.db
 *.sqlite
+
+node_modules/
