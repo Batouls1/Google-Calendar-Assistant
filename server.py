@@ -77,7 +77,7 @@ def _strip_date_anchor(text: str) -> str:
  
  
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+def chat(request: ChatRequest):
     logger.info(f"[{request.thread_id}] User: {request.message}")
  
     # Record this thread in the sessions table if it's the first message —
@@ -116,13 +116,13 @@ async def chat(request: ChatRequest):
  
  
 @app.get("/sessions")
-async def get_sessions():
+def get_sessions():
     """Return all chat sessions for the sidebar, most recent first."""
     return {"sessions": list_sessions()}
  
  
 @app.get("/sessions/{thread_id}/messages")
-async def get_session_messages(thread_id: str):
+def get_session_messages(thread_id: str):
     """Return a thread's full conversation history, reconstructing cards
     per turn so old sessions render the same way they did live.
  
@@ -163,7 +163,7 @@ async def get_session_messages(thread_id: str):
  
  
 @app.delete("/sessions/{thread_id}")
-async def delete_session_endpoint(thread_id: str):
+def delete_session_endpoint(thread_id: str):
     """Remove a session from the sidebar. See session_service.delete_session
     for what this does and doesn't clean up."""
     deleted = delete_session(thread_id)
