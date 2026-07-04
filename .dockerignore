@@ -1,0 +1,26 @@
+# Secrets — never enter the build context, let alone the image
+.env
+.env.example
+credentials.json
+token.json
+memory.db
+memory.db-wal
+memory.db-shm
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+
+# Node (only needed inside the css-builder stage, installed fresh there)
+node_modules/
+
+# Git / editor / docs — irrelevant to the running app
+.git/
+.gitignore
+.vscode/
+README.md
+tests/
