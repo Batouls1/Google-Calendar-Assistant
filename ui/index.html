@@ -68,10 +68,10 @@
                 </div>
             </div>
             <div class="flex flex-col gap-1 pt-1 border-t border-slate-200/60 text-slate-500 text-xs font-medium">
-                <a href="#" onclick="return false;" class="flex items-center gap-2.5 py-1.5 hover:text-slate-800 transition-colors cursor-default">
+                <a href="#" class="flex items-center gap-2.5 py-1.5 hover:text-slate-800 transition-colors">
                     <i class="fa-solid fa-gear text-slate-400"></i> Settings
                 </a>
-                <a href="#" onclick="return false;" class="flex items-center gap-2.5 py-1.5 hover:text-slate-800 transition-colors cursor-default">
+                <a href="#" class="flex items-center gap-2.5 py-1.5 hover:text-slate-800 transition-colors">
                     <i class="fa-solid fa-arrow-right-from-bracket text-slate-400"></i> Log out
                 </a>
             </div>
@@ -128,8 +128,23 @@
     </main>
 
     <script>
+        // crypto.randomUUID() only exists in "secure contexts" (HTTPS, or
+        // localhost specifically) — browsers disable it entirely over plain
+        // HTTP on a real IP/domain. This falls back to a manual UUID v4
+        // generator so the app works identically either way.
+        function generateUUID() {
+            if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+                return crypto.randomUUID();
+            }
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                const r = (Math.random() * 16) | 0;
+                const v = c === 'x' ? r : (r & 0x3) | 0x8;
+                return v.toString(16);
+            });
+        }
+
         const COLORS = ['bg-blue-500','bg-emerald-500','bg-purple-500','bg-amber-500','bg-rose-500'];
-        let threadId = crypto.randomUUID();
+        let threadId = generateUUID();
         let isWaiting = false;
 
         document.getElementById('welcome-time').textContent = formatTime(new Date());
@@ -149,7 +164,7 @@
         document.getElementById('send-btn').addEventListener('click', sendMessage);
 
         document.getElementById('new-chat-btn').addEventListener('click', () => {
-            threadId = crypto.randomUUID();
+            threadId = generateUUID();
             document.getElementById('chat-messages').innerHTML = '';
             document.getElementById('chat-title').textContent = 'New Conversation';
             appendAssistantBubble("Hello! I'm your Calendar Assistant. I can help you schedule events, view your schedule, delete events, and find free time slots.\n\nHow can I assist you today?");
@@ -298,7 +313,7 @@
 
                 if (id === threadId) {
                     // Currently viewing the deleted thread — reset to a fresh chat
-                    threadId = crypto.randomUUID();
+                    threadId = generateUUID();
                     document.getElementById('chat-messages').innerHTML = '';
                     document.getElementById('chat-title').textContent = 'New Conversation';
                     appendAssistantBubble("Hello! I'm your Calendar Assistant. I can help you schedule events, view your schedule, delete events, and find free time slots.\n\nHow can I assist you today?");
