@@ -1,4 +1,4 @@
-# Secrets — never enter the build context, let alone the image
+# Secrets 
 .env
 .env.example
 credentials.json
@@ -15,10 +15,10 @@ __pycache__/
 .pytest_cache/
 .coverage
 
-# Node (only needed inside the css-builder stage, installed fresh there)
+# Node 
 node_modules/
 
-# Git / editor / docs — irrelevant to the running app
+# Git/editor/docs 
 .git/
 .gitignore
 .vscode/
