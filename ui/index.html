@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendar Assistant</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%232563eb%22/><text x=%2250%22 y=%2268%22 font-size=%2258%22 text-anchor=%22middle%22 fill=%22white%22>📅</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -30,8 +31,11 @@
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
 
+    <!-- Dims the page behind the sidebar on mobile; clicking it closes the sidebar -->
+    <div id="sidebar-backdrop" class="hidden fixed inset-0 bg-black/30 z-30 md:hidden"></div>
+
     <!-- SIDEBAR -->
-    <aside class="w-64 bg-[#f8fafc] border-r border-slate-200 flex flex-col justify-between h-full">
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 max-w-[85%] -translate-x-full transition-transform duration-200 ease-in-out bg-[#f8fafc] border-r border-slate-200 flex flex-col justify-between h-full md:static md:translate-x-0">
         <div class="p-4 flex flex-col gap-6 min-h-0">
             <div class="flex items-center gap-3">
                 <div class="bg-blue-600 text-white p-2 rounded-xl shadow-md shadow-blue-200">
@@ -80,9 +84,14 @@
 
     <!-- MAIN -->
     <main class="flex-1 flex flex-col h-full bg-white relative">
-        <header class="h-14 border-b border-slate-100 flex items-center justify-between px-6 bg-white shrink-0">
-            <h2 id="chat-title" class="font-semibold text-slate-800 text-[15px]">New Conversation</h2>
-            <button class="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-lg hover:bg-slate-50">
+        <header class="h-14 border-b border-slate-100 flex items-center justify-between gap-3 px-4 md:px-6 bg-white shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <button id="mobile-menu-btn" class="md:hidden text-slate-500 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-50 shrink-0">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <h2 id="chat-title" class="font-semibold text-slate-800 text-[15px] truncate">New Conversation</h2>
+            </div>
+            <button class="text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-lg hover:bg-slate-50 shrink-0">
                 <i class="fa-solid fa-ellipsis-vertical"></i>
             </button>
         </header>
@@ -110,7 +119,7 @@
                     <i class="fa-solid fa-paper-plane text-xs w-3.5 h-3.5 flex items-center justify-center"></i>
                 </button>
             </div>
-            <div class="grid grid-cols-4 gap-2 text-[11px] font-bold text-slate-600 w-full">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-bold text-slate-600 w-full">
                 <button class="quick-action flex items-center justify-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors bg-white shadow-sm" data-text="Schedule an event ">
                     <i class="fa-regular fa-calendar text-slate-400 text-xs"></i> Schedule Event
                 </button>
@@ -147,6 +156,24 @@
         let threadId = generateUUID();
         let isWaiting = false;
 
+        // ── Mobile sidebar toggle ────────────────────────────────────────────
+        // Only affects screens below Tailwind's 'md' breakpoint — on desktop
+        // the sidebar's md:static md:translate-x-0 classes keep it always
+        // visible regardless of these calls, so this never touches desktop layout.
+        const sidebar = document.getElementById('sidebar');
+        const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+        function openSidebar() {
+            sidebar.classList.remove('-translate-x-full');
+            sidebarBackdrop.classList.remove('hidden');
+        }
+        function closeSidebar() {
+            sidebar.classList.add('-translate-x-full');
+            sidebarBackdrop.classList.add('hidden');
+        }
+        document.getElementById('mobile-menu-btn').addEventListener('click', openSidebar);
+        sidebarBackdrop.addEventListener('click', closeSidebar);
+
         document.getElementById('welcome-time').textContent = formatTime(new Date());
 
         document.querySelectorAll('.quick-action').forEach(btn => {
@@ -169,6 +196,7 @@
             document.getElementById('chat-title').textContent = 'New Conversation';
             appendAssistantBubble("Hello! I'm your Calendar Assistant. I can help you schedule events, view your schedule, delete events, and find free time slots.\n\nHow can I assist you today?");
             renderSessions(cachedSessions); // clear active highlight; new thread has no row yet
+            closeSidebar();
         });
 
         // ── Send ───────────────────────────────────────────────────────────────
@@ -331,6 +359,7 @@
             threadId = id;
             document.getElementById('chat-title').textContent = title;
             document.getElementById('chat-messages').innerHTML = '';
+            closeSidebar();
 
             try {
                 const res = await fetch(`/sessions/${id}/messages`);
